@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Evaluación Comedor PAS</title>
+
+<style>
+
+body{
+    margin:0;
+    font-family:'Segoe UI',sans-serif;
+    background:#f4f6f9;
+}
+
+header{
+    background:#003366;
+    color:white;
+    text-align:center;
+    padding:20px;
+}
+
+.logo{
+    max-width:500px;
+    width:90%;
+    margin-bottom:10px;
+}
+
+.container{
+    max-width:1000px;
+    margin:auto;
+    padding:20px;
+}
+
+.card{
+    background:white;
+    border-radius:15px;
+    padding:25px;
+    box-shadow:0 3px 12px rgba(0,0,0,.15);
+}
+
+.fecha{
+    text-align:center;
+    font-size:24px;
+    font-weight:bold;
+    color:#003366;
+    margin-bottom:20px;
+}
+
+input,
+textarea{
+    width:100%;
+    padding:15px;
+    font-size:18px;
+    margin-bottom:15px;
+    border-radius:10px;
+    border:1px solid #ccc;
+    box-sizing:border-box;
+}
+
+textarea{
+    height:120px;
+}
+
+.botones{
+    display:flex;
+    justify-content:center;
+    gap:30px;
+    flex-wrap:wrap;
+    margin-top:20px;
+}
+
+.btn{
+    width:350px;
+    height:220px;
+    border:none;
+    border-radius:25px;
+    color:white;
+    font-size:48px;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+.btn-bueno{
+    background:#28a745;
+}
+
+.btn-malo{
+    background:#dc3545;
+}
+
+.btn:hover{
+    transform:scale(1.03);
+}
+
+.dashboard{
+    text-align:center;
+    margin-top:25px;
+    font-size:28px;
+    font-weight:bold;
+}
+
+.exportar{
+    width:100%;
+    margin-top:25px;
+    background:#003366;
+    color:white;
+    border:none;
+    border-radius:10px;
+    padding:18px;
+    font-size:22px;
+    cursor:pointer;
+}
+
+.preview{
+    display:block;
+    margin:auto;
+    max-width:250px;
+    max-height:250px;
+    border-radius:10px;
+    margin-top:10px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<header>
+
+<img src="logo.png"
+
+<h1>🍽 Evaluación del Servicio de Comedor</h1>
+
+</header>
+
+<div class="container">
+
+<div class="card">
+
+<div id="fechaActual" class="fecha"></div>
+
+<input
+type="number"
+id="reloj"
+placeholder="Ingrese su número de reloj">
+
+<textarea
+id="comentario"
+placeholder="Comentario (opcional)">
+</textarea>
+
+<label><strong>Fotografía del platillo (Opcional)</strong></label>
+
+<input
+type="file"
+id="foto"
+accept="image/*">
+
+<img id="preview" class="preview">
+
+<div class="botones">
+
+<button
+class="btn btn-bueno"
+onclick="registrarVoto('Bueno')">
+👍
+<br>
+BUENO
+</button>
+
+<button
+class="btn btn-malo"
+onclick="registrarVoto('Malo')">
+👎
+<br>
+MALO
+</button>
+
+</div>
+
+<div class="dashboard">
+
+👍 Buenos:
+<span id="buenos">0</span>
+
+<br><br>
+
+👎 Malos:
+<span id="malos">0</span>
+
+<br><br>
+
+📊 Satisfacción:
+<span id="porcentaje">0%</span>
+
+</div>
+
+<button
+class="exportar"
+onclick="exportarCSV()">
+
+📥 Descargar Excel (CSV)
+
+</button>
+
+</div>
+
+</div>
+
+<script>
+
+// Reinicio diario
+
+const hoy = new Date().toLocaleDateString();
+
+const fechaGuardada =
+localStorage.getItem("fechaComedor");
+
+if(fechaGuardada !== hoy){
+
+    localStorage.setItem(
+        "fechaComedor",
+        hoy
+    );
+
+    localStorage.removeItem(
+        "votosComedor"
+    );
+}
+
+let votos =
+JSON.parse(
+localStorage.getItem("votosComedor")
+) || [];
+
+document.getElementById("fechaActual").innerHTML =
+"📅 Fecha: " + hoy;
+
+
+// Vista previa de foto
+
+document
+.getElementById("foto")
+.addEventListener("change", function(){
+
+    const archivo = this.files[0];
+
+    if(!archivo) return;
+
+    const reader = new FileReader();
+
+    reader.onload = function(e){
+
+        document.getElementById(
+            "preview"
+        ).src = e.target.result;
+
+    };
+
+    reader.readAsDataURL(archivo);
+
+});
+
+
+// Registrar voto
+
+function registrarVoto(tipo){
+
+    const reloj =
+    document.getElementById("reloj").value;
+
+    if(reloj === ""){
+
+        alert(
+            "Ingrese su número de reloj"
+        );
+
+        return;
+    }
+
+    const comentario =
+    document.getElementById("comentario").value;
+
+    votos.push({
+
+        Fecha:
+        new Date().toLocaleString(),
+
+        NumeroReloj:
+        reloj,
+
+        Evaluacion:
+        tipo,
+
+        Comentario:
+        comentario
+
+    });
+
+    localStorage.setItem(
+        "votosComedor",
+        JSON.stringify(votos)
+    );
+
+    document.getElementById("reloj").value = "";
+    document.getElementById("comentario").value = "";
+    document.getElementById("foto").value = "";
+    document.getElementById("preview").src = "";
+
+    actualizarDashboard();
+
+    alert(
+        "✅ Gracias por su evaluación"
+    );
+}
+
+
+// Dashboard
+
+function actualizarDashboard(){
+
+    const buenos =
+    votos.filter(
+        x => x.Evaluacion === "Bueno"
+    ).length;
+
+    const malos =
+    votos.filter(
+        x => x.Evaluacion === "Malo"
+    ).length;
+
+    const total =
+    buenos + malos;
+
+    const porcentaje =
+    total > 0
+    ? ((buenos/total)*100).toFixed(1)
+    : 0;
+
+    document.getElementById(
+        "buenos"
+    ).innerText = buenos;
+
+    document.getElementById(
+        "malos"
+    ).innerText = malos;
+
+    document.getElementById(
+        "porcentaje"
+    ).innerText = porcentaje + "%";
+}
+
+
+// Exportar CSV
+
+function exportarCSV(){
+
+    if(votos.length === 0){
+
+        alert(
+            "No existen votos para exportar."
+        );
+
+        return;
+    }
+
+    let csv =
+    "Fecha,NumeroReloj,Evaluacion,Comentario\n";
+
+    votos.forEach(voto => {
+
+        csv += `"${voto.Fecha}","${voto.NumeroReloj}","${voto.Evaluacion}","${voto.Comentario}"\n`;
+
+    });
+
+    const blob = new Blob(
+        [csv],
+        {
+            type:
+            "text/csv;charset=utf-8;"
+        }
+    );
+
+    const enlace =
+    document.createElement("a");
+
+    enlace.href =
+    URL.createObjectURL(blob);
+
+    enlace.download =
+    "Evaluacion_Comedor.csv";
+
+    document.body.appendChild(enlace);
+
+    enlace.click();
+
+    document.body.removeChild(enlace);
+}
+
+actualizarDashboard();
+
+</script>
+
+</body>
+</html>
